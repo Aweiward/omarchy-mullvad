@@ -5,7 +5,7 @@ Bar widget for [Omarchy](https://omarchy.org) Quattro. Wraps the official `mullv
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/<you>/omarchy-mullvad.git --enable
+omarchy plugin add https://github.com/Aweiward/omarchy-mullvad.git --enable
 ```
 
 Or, from a local checkout:

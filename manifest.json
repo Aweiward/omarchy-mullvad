@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "ethos.mullvad",
+  "name": "Mullvad",
+  "version": "1.0.0",
+  "author": "ethos",
+  "license": "MIT",
+  "description": "Mullvad status, connect/disconnect, city picker, login, and lockdown in the Omarchy bar.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Mullvad",
+    "description": "Toggle Mullvad, pick a city, sign in, and control lockdown.",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 30,
+      "recentCities": []
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Fallback refresh interval (seconds)",
+        "min": 5,
+        "max": 3600,
+        "step": 5,
+        "defaultValue": 30
+      }
+    ]
+  }
+}

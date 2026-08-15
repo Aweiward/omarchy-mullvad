@@ -37,7 +37,23 @@ function parseRelayList(raw) {
 }
 
 function filterCities(cities, query) {
-  return cities || [];
+  var list = cities || [];
+  var needle = String(query || "").trim().toLowerCase();
+  if (needle === "") return list.slice();
+  var out = [];
+  for (var i = 0; i < list.length; i++) {
+    var row = list[i];
+    var hay = [
+      row.country,
+      row.countryCode,
+      row.city,
+      row.cityCode,
+      row.country + " " + row.city,
+      row.countryCode + " " + row.cityCode
+    ].join("\n").toLowerCase();
+    if (hay.indexOf(needle) !== -1) out.push(row);
+  }
+  return out;
 }
 
 function normalizeAccountNumber(raw) {
@@ -68,7 +84,27 @@ function parseRelayGet(raw) {
 }
 
 function mergeRecentCities(recentKeys, cities) {
-  return cities || [];
+  var list = cities || [];
+  var recents = recentKeys || [];
+  var byKey = {};
+  var i;
+  for (i = 0; i < list.length; i++) {
+    byKey[list[i].countryCode + " " + list[i].cityCode] = list[i];
+  }
+  var out = [];
+  var seen = {};
+  for (i = 0; i < recents.length && out.length < 5; i++) {
+    var key = String(recents[i] || "");
+    if (!byKey[key] || seen[key]) continue;
+    out.push(byKey[key]);
+    seen[key] = true;
+  }
+  for (i = 0; i < list.length; i++) {
+    var k = list[i].countryCode + " " + list[i].cityCode;
+    if (seen[k]) continue;
+    out.push(list[i]);
+  }
+  return out;
 }
 
 if (typeof module !== "undefined" && module.exports) {

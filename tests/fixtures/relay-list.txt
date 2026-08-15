@@ -1,0 +1,12 @@
+Albania (al)
+	Tirana (tia) @ 41.32795°N, 19.81902°W
+		al-tia-wg-001 (103.124.165.2) - hosted by iRegister (rented)
+Sweden (se)
+	Gothenburg (got) @ 57.70887°N, 11.97456°W
+		se-got-wg-001 (193.138.218.74) - hosted by 31173 (owned)
+		se-got-wg-004 (193.138.218.82) - hosted by 31173 (owned)
+	Malmö (mma) @ 55.60587°N, 13.00073°W
+		se-mma-wg-001 (193.138.218.90) - hosted by 31173 (owned)
+United States (us)
+	New York (nyc) @ 40.71427°N, 74.00597°W
+		us-nyc-wg-301 (146.70.116.2) - hosted by M247 (rented)

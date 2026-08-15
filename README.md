@@ -10,14 +10,6 @@ Bar widget for [Omarchy](https://omarchy.org) Quattro. Wraps the official `mullv
 omarchy plugin add https://github.com/Aweiward/omarchy-mullvad.git --enable
 ```
 
-Or, from a local checkout:
-
-```bash
-ln -sfn /path/to/omarchy-mullvad ~/.config/omarchy/plugins/ethos.mullvad
-omarchy-shell shell rescanPlugins
-omarchy plugin enable ethos.mullvad
-```
-
 If `mullvad` is missing, open the widget and click **Install Mullvad**. That runs `omarchy pkg add mullvad-vpn-daemon` (Arch extra). It will not remove the official Mullvad app if you already have it.
 
 ## Use

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "ethos.mullvad",
+  "id": "aweiward.mullvad",
   "name": "Mullvad",
   "version": "1.0.0",
-  "author": "ethos",
+  "author": "Aweiward",
   "license": "MIT",
   "description": "Mullvad status, connect/disconnect, city picker, login, and lockdown in the Omarchy bar.",
   "kinds": ["bar-widget"],

@@ -1,5 +1,5 @@
 {
-  "name": "ethos-mullvad",
+  "name": "aweiward-mullvad",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

@@ -8,8 +8,8 @@ import "Model.js" as Model
 
 Panel {
   id: root
-  moduleName: "ethos.mullvad"
-  ipcTarget: "ethos.mullvad"
+  moduleName: "aweiward.mullvad"
+  ipcTarget: "aweiward.mullvad"
   manageIpc: false
 
   property string focusSection: "header"

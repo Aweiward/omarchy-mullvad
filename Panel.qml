@@ -22,8 +22,8 @@ Panel {
   readonly property color urgent: bar ? bar.urgent : Color.urgent
   readonly property color dim: Qt.darker(foreground, 1.55)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property color iconColor: mullvad.active ? foreground : dim
-  readonly property color barIconColor: mullvad.active ? barForeground : Qt.darker(barForeground, 1.55)
+  readonly property color iconColor: (mullvad.active || mullvad.state === "connecting" || mullvad.state === "disconnecting") ? foreground : dim
+  readonly property color barIconColor: (mullvad.active || mullvad.state === "connecting" || mullvad.state === "disconnecting") ? barForeground : Qt.darker(barForeground, 1.55)
   readonly property color hoverFill: bar ? Style.hoverFillFor(bar.foreground, Color.accent) : "transparent"
   readonly property color selectedFill: bar ? Style.selectedFillFor(bar.foreground, Color.accent) : "transparent"
   readonly property bool headerHasCursor: cursorActive && focusSection === "header" && mullvad.installed && mullvad.loggedIn
@@ -42,7 +42,7 @@ Panel {
   readonly property string heroMeta: {
     if (!mullvad.installed) return "Mullvad is not installed"
     if (!mullvad.loggedIn) return "Not logged in"
-    if (mullvad.active && mullvad.locationCountry !== "") return mullvad.locationCountry + " · Connected"
+    if (mullvad.active) return (mullvad.locationCountry !== "" ? mullvad.locationCountry + " · Connected" : "Connected")
     if (mullvad.state === "connecting") return "Connecting…"
     if (mullvad.state === "disconnecting") return "Disconnecting…"
     return "Disconnected"
@@ -184,10 +184,12 @@ Panel {
   Connections {
     target: mullvad
     function onInstalledChanged() {
+      if (mullvad.installed && mullvad.cities.length === 0) mullvad.loadCities()
       root.ensureCursor()
       Qt.callLater(root.syncFocus)
     }
     function onLoggedInChanged() {
+      if (mullvad.loggedIn && mullvad.cities.length === 0) mullvad.loadCities()
       if (mullvad.loggedIn) root.accountField = ""
       root.ensureCursor()
       Qt.callLater(root.syncFocus)
@@ -304,7 +306,7 @@ Panel {
               meta: root.heroMeta
               foreground: root.foreground
               fontFamily: root.fontFamily
-              iconOpacity: mullvad.active ? 1.0 : 0.5
+              iconOpacity: (mullvad.active || mullvad.state === "connecting" || mullvad.state === "disconnecting") ? 1.0 : 0.5
               iconComponent: Component {
                 MullvadIcon {
                   iconSize: Style.font.display

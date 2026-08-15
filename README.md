@@ -1,6 +1,8 @@
 # Mullvad for Omarchy
 
-Bar widget for [Omarchy](https://omarchy.org) Quattro. Wraps the official `mullvad` CLI.
+A status-bar plugin for [Omarchy](https://omarchy.org) Quattro that puts Mullvad VPN on the desktop instead of in a terminal.
+
+Click the themed mark to see whether you are connected, pick a city, turn the tunnel on or off, log in with your account number, and toggle lockdown. Right-click the icon to connect or disconnect without opening the panel. It talks to the official `mullvad` CLI, so the daemon you already trust is still what is running.
 
 ![Mullvad panel on the Omarchy bar](preview.png)
 

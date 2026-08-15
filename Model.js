@@ -57,12 +57,14 @@ function filterCities(cities, query) {
 }
 
 function normalizeAccountNumber(raw) {
-  return { ok: false, digits: "", error: "Enter your 16-digit account number." };
+  var digits = String(raw || "").replace(/\D/g, "");
+  if (digits.length === 16) return { ok: true, digits: digits, error: "" };
+  return { ok: false, digits: digits, error: "Enter your 16-digit account number." };
 }
 
-function parseStatusJson(raw) {
+function emptyStatus(state) {
   return {
-    state: "error",
+    state: state || "error",
     active: false,
     locationCountry: "",
     locationCity: "",
@@ -71,16 +73,64 @@ function parseStatusJson(raw) {
   };
 }
 
+function parseStatusJson(raw) {
+  var parsed;
+  try {
+    parsed = JSON.parse(String(raw || ""));
+  } catch (e) {
+    return emptyStatus("error");
+  }
+  if (!parsed || typeof parsed !== "object") return emptyStatus("error");
+
+  var state = String(parsed.state || "error");
+  var details = parsed.details || {};
+  var location = details.location || {};
+  var exitIp = location.mullvad_exit_ip === true;
+  var tunnelOpen = state === "connected" || state === "connecting" || state === "disconnecting";
+  var useLocation = tunnelOpen && (exitIp || !!location.hostname);
+
+  return {
+    state: state,
+    active: state === "connected",
+    locationCountry: useLocation ? String(location.country || "") : "",
+    locationCity: useLocation ? String(location.city || "") : "",
+    lockedDown: details.locked_down === true,
+    mullvadExitIp: exitIp
+  };
+}
+
 function parseAccountGet(raw, exitCode) {
-  return { loggedIn: false, accountExpiry: "", deviceName: "", error: "" };
+  if (exitCode !== 0) {
+    return { loggedIn: false, accountExpiry: "", deviceName: "", error: String(raw || "").trim() };
+  }
+  var text = String(raw || "");
+  var expiryLine = text.match(/Expires at:\s+(\d{4}-\d{2}-\d{2})/);
+  var deviceLine = text.match(/Device name:\s+(.+)$/m);
+  var accountLine = text.match(/Mullvad account:\s+(\d+)/);
+  if (!accountLine) {
+    return { loggedIn: false, accountExpiry: "", deviceName: "", error: text.trim() };
+  }
+  return {
+    loggedIn: true,
+    accountExpiry: expiryLine ? expiryLine[1] : "",
+    deviceName: deviceLine ? deviceLine[1].trim() : "",
+    error: ""
+  };
 }
 
 function parseLockdownGet(raw) {
-  return false;
+  return /:\s*on\s*$/im.test(String(raw || ""));
 }
 
 function parseRelayGet(raw) {
-  return { country: "", city: "" };
+  var text = String(raw || "");
+  var country = "";
+  var city = "";
+  var countryMatch = text.match(/\bcountry\s+([a-z]{2})\b/i);
+  var cityMatch = text.match(/\bcity\s+([a-z]{3})\b/i);
+  if (countryMatch) country = countryMatch[1].toLowerCase();
+  if (cityMatch) city = cityMatch[1].toLowerCase();
+  return { country: country, city: city };
 }
 
 function mergeRecentCities(recentKeys, cities) {

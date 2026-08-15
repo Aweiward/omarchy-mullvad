@@ -53,3 +53,92 @@ test("mergeRecentCities puts remembered keys first without duplicating", () => {
   assert.equal(merged[1].cityCode, "got");
   assert.equal(merged.length, cities.length);
 });
+
+test("normalizeAccountNumber strips spaces and requires 16 digits", () => {
+  assert.deepEqual(Model.normalizeAccountNumber("1234 5678 9012 3456"), {
+    ok: true,
+    digits: "1234567890123456",
+    error: ""
+  });
+  assert.equal(Model.normalizeAccountNumber("123").ok, false);
+  assert.equal(Model.normalizeAccountNumber("abcdefghijklmnop").ok, false);
+  assert.equal(Model.normalizeAccountNumber("").error, "Enter your 16-digit account number.");
+});
+
+test("parseStatusJson ignores visible location when disconnected", () => {
+  const raw = fs.readFileSync(
+    path.join(__dirname, "fixtures/status-disconnected.json"),
+    "utf8"
+  );
+  const status = Model.parseStatusJson(raw);
+  assert.equal(status.state, "disconnected");
+  assert.equal(status.active, false);
+  assert.equal(status.locationCountry, "");
+  assert.equal(status.locationCity, "");
+  assert.equal(status.mullvadExitIp, false);
+  assert.equal(status.lockedDown, false);
+});
+
+test("parseStatusJson uses location only when connected", () => {
+  const raw = JSON.stringify({
+    state: "connected",
+    details: {
+      location: {
+        country: "Sweden",
+        city: "Gothenburg",
+        mullvad_exit_ip: true,
+        hostname: "se-got-wg-001"
+      },
+      locked_down: false
+    }
+  });
+  const status = Model.parseStatusJson(raw);
+  assert.equal(status.state, "connected");
+  assert.equal(status.active, true);
+  assert.equal(status.locationCountry, "Sweden");
+  assert.equal(status.locationCity, "Gothenburg");
+  assert.equal(status.mullvadExitIp, true);
+});
+
+test("parseStatusJson returns error state for garbage", () => {
+  const status = Model.parseStatusJson("not-json");
+  assert.equal(status.state, "error");
+  assert.equal(status.active, false);
+});
+
+test("parseAccountGet reads expiry and device", () => {
+  const raw = [
+    "Mullvad account:    0000000000000000",
+    "Expires at:         2026-09-12 20:25:29 -04:00",
+    "Device name:        Deep Robin"
+  ].join("\n");
+  const account = Model.parseAccountGet(raw, 0);
+  assert.equal(account.loggedIn, true);
+  assert.equal(account.deviceName, "Deep Robin");
+  assert.equal(account.accountExpiry, "2026-09-12");
+  assert.equal(account.error, "");
+});
+
+test("parseAccountGet treats non-zero exit as logged out", () => {
+  const account = Model.parseAccountGet("Not logged in", 1);
+  assert.equal(account.loggedIn, false);
+  assert.equal(account.deviceName, "");
+});
+
+test("parseLockdownGet reads on/off", () => {
+  assert.equal(
+    Model.parseLockdownGet("Block traffic when the VPN is disconnected: off"),
+    false
+  );
+  assert.equal(
+    Model.parseLockdownGet("Block traffic when the VPN is disconnected: on"),
+    true
+  );
+});
+
+test("parseRelayGet reads country and optional city", () => {
+  const countryOnly = Model.parseRelayGet("    Location:               country se");
+  assert.deepEqual(countryOnly, { country: "se", city: "" });
+  const both = Model.parseRelayGet("    Location:               country se city got");
+  assert.deepEqual(both, { country: "se", city: "got" });
+});

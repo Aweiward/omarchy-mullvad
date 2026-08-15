@@ -86,6 +86,13 @@ Panel {
     if (cityIndex < 0) cityIndex = 0
   }
 
+  function syncFocus() {
+    if (mullvad.installed && !mullvad.loggedIn && accountInput)
+      accountInput.forceActiveFocus()
+    else
+      keyCatcher.forceActiveFocus()
+  }
+
   function moveCursor(dx, dy) {
     cursorActive = true
     ensureCursor()
@@ -112,6 +119,7 @@ Panel {
     else if (focusSection === "cities") chooseCity(selectedCity())
     else if (focusSection === "install") mullvad.installDaemon()
     else if (focusSection === "login") submitLogin()
+    else if (focusSection === "daemon") mullvad.startDaemon()
   }
 
   function setHeaderCursor() {
@@ -163,12 +171,7 @@ Panel {
     mullvad.refresh()
     if (mullvad.installed && mullvad.cities.length === 0) mullvad.loadCities()
     ensureCursor()
-    Qt.callLater(function() {
-      if (mullvad.installed && !mullvad.loggedIn && accountInput)
-        accountInput.forceActiveFocus()
-      else
-        keyCatcher.forceActiveFocus()
-    })
+    Qt.callLater(syncFocus)
   }
   onCityIndexChanged: scrollCursorIntoView()
   onVisibleCitiesChanged: ensureCursor()
@@ -180,10 +183,14 @@ Panel {
 
   Connections {
     target: mullvad
-    function onInstalledChanged() { root.ensureCursor() }
+    function onInstalledChanged() {
+      root.ensureCursor()
+      Qt.callLater(root.syncFocus)
+    }
     function onLoggedInChanged() {
       if (mullvad.loggedIn) root.accountField = ""
       root.ensureCursor()
+      Qt.callLater(root.syncFocus)
     }
     function onCitiesChanged() { root.ensureCursor() }
   }
@@ -336,6 +343,52 @@ Panel {
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
             wrapMode: Text.WordWrap
+          }
+
+          CursorSurface {
+            id: daemonBody
+            visible: mullvad.installed && !mullvad.daemonRunning
+            width: parent.width
+            implicitHeight: daemonCol.implicitHeight + Style.spacing.rowPaddingX
+            hasCursor: root.cursorActive && root.focusSection === "daemon"
+            foreground: root.foreground
+            fill: root.hoverFill
+
+            MouseArea {
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: mullvad.busy ? Qt.ArrowCursor : Qt.PointingHandCursor
+              enabled: !mullvad.busy
+              onEntered: {
+                root.cursorActive = true
+                root.focusSection = "daemon"
+              }
+              onClicked: mullvad.startDaemon()
+            }
+
+            Column {
+              id: daemonCol
+              width: parent.width
+              spacing: Style.space(8)
+              anchors.verticalCenter: parent.verticalCenter
+              leftPadding: Style.space(10)
+              rightPadding: Style.space(10)
+
+              Text {
+                width: parent.width - daemonCol.leftPadding - daemonCol.rightPadding
+                text: "Mullvad daemon is not running"
+                color: root.dim
+                wrapMode: Text.WordWrap
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+              }
+              Text {
+                text: mullvad.busy ? "Starting…" : "Start daemon"
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+              }
+            }
           }
 
           CursorSurface {

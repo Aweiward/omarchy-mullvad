@@ -2,6 +2,8 @@
 
 Bar widget for [Omarchy](https://omarchy.org) Quattro. Wraps the official `mullvad` CLI.
 
+![Mullvad panel on the Omarchy bar](preview.png)
+
 ## Install
 
 ```bash

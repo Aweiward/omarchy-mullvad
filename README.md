@@ -12,7 +12,15 @@ Click the themed mark to see whether you are connected, pick a city, turn the tu
 omarchy plugin add https://github.com/Aweiward/omarchy-mullvad.git --enable
 ```
 
-If `mullvad` is missing, open the widget and click **Install Mullvad**. That runs `omarchy pkg add mullvad-vpn-daemon` (Arch extra). It will not remove the official Mullvad app if you already have it.
+If `mullvad` is missing, open the widget and click **Install Mullvad**. That runs `omarchy pkg add mullvad-vpn-daemon` (Arch extra, via Omarchy’s usual privilege prompt) and starts `mullvad-daemon.service`. It will not remove the official Mullvad app if you already have it.
+
+## Remove
+
+```bash
+omarchy plugin remove aweiward.mullvad
+```
+
+That disables the widget and deletes the plugin checkout. It does **not** uninstall `mullvad-vpn-daemon`, stop the Mullvad daemon, log you out of Mullvad, or change other Omarchy config.
 
 ## Use
 

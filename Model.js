@@ -64,6 +64,7 @@ function normalizeAccountNumber(raw) {
 
 function emptyStatus(state) {
   return {
+    ignored: false,
     state: state || "error",
     active: false,
     locationCountry: "",
@@ -81,8 +82,19 @@ function parseStatusJson(raw) {
     return emptyStatus("error");
   }
   if (!parsed || typeof parsed !== "object") return emptyStatus("error");
+  if (typeof parsed.state !== "string") {
+    return {
+      ignored: true,
+      state: "",
+      active: false,
+      locationCountry: "",
+      locationCity: "",
+      lockedDown: false,
+      mullvadExitIp: false
+    };
+  }
 
-  var state = String(parsed.state || "error");
+  var state = parsed.state;
   var details = parsed.details || {};
   var location = details.location || {};
   var exitIp = location.mullvad_exit_ip === true;
@@ -90,6 +102,7 @@ function parseStatusJson(raw) {
   var useLocation = tunnelOpen && (exitIp || !!location.hostname);
 
   return {
+    ignored: false,
     state: state,
     active: state === "connected",
     locationCountry: useLocation ? String(location.country || "") : "",

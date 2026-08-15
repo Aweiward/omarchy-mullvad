@@ -71,6 +71,7 @@ test("parseStatusJson ignores visible location when disconnected", () => {
     "utf8"
   );
   const status = Model.parseStatusJson(raw);
+  assert.equal(status.ignored, false);
   assert.equal(status.state, "disconnected");
   assert.equal(status.active, false);
   assert.equal(status.locationCountry, "");
@@ -93,6 +94,7 @@ test("parseStatusJson uses location only when connected", () => {
     }
   });
   const status = Model.parseStatusJson(raw);
+  assert.equal(status.ignored, false);
   assert.equal(status.state, "connected");
   assert.equal(status.active, true);
   assert.equal(status.locationCountry, "Sweden");
@@ -104,6 +106,14 @@ test("parseStatusJson returns error state for garbage", () => {
   const status = Model.parseStatusJson("not-json");
   assert.equal(status.state, "error");
   assert.equal(status.active, false);
+});
+
+test("parseStatusJson ignores listen events that have no tunnel state", () => {
+  const status = Model.parseStatusJson('{"type":"settings"}');
+  assert.equal(status.ignored, true);
+  assert.equal(status.state, "");
+  assert.equal(status.active, false);
+  assert.notEqual(status.state, "error");
 });
 
 test("parseAccountGet reads expiry and device", () => {

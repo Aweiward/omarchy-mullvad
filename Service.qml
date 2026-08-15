@@ -44,7 +44,8 @@ Item {
   function clearError() { lastError = "" }
 
   function applyStatus(status) {
-    if (!status || status.state === "error") {
+    if (!status || status.ignored) return
+    if (status.state === "error") {
       daemonRunning = false
       return
     }
@@ -53,7 +54,6 @@ Item {
     active = status.active
     locationCountry = status.locationCountry
     locationCity = status.locationCity
-    if (status.lockedDown) lockdown = true
   }
 
   function applyAccount(account) {
@@ -90,7 +90,7 @@ Item {
       listenProcess.running = false
       return
     }
-    if (listenProcess.running) listenProcess.running = false
+    if (listenProcess.running) return
     listenProcess.command = ["mullvad", "status", "--json", "listen"]
     listenProcess.running = true
   }
@@ -195,6 +195,11 @@ Item {
     if (exitCode !== 0) {
       lastError = err || "Mullvad command failed"
       if (kind === "logout-after-disconnect") return
+      if (_pendingCity) {
+        var failedPending = _pendingCity
+        _pendingCity = null
+        setCity(failedPending.country, failedPending.city)
+      }
       return
     }
     if (kind === "login" || kind === "logout") {

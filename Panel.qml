@@ -239,6 +239,15 @@ Panel {
     }
   }
 
+  // Must stay outside KeyboardPanel: that type's default property is
+  // contentItem (QQuickItem list). Shortcut is not an Item, and putting it
+  // there fails the whole widget load.
+  Shortcut {
+    sequences: ["l", "L"]
+    enabled: root.opened && root.ready && !root.fieldFocused
+    onActivated: mullvad.setLockdown(!mullvad.lockdown)
+  }
+
   KeyboardPanel {
     id: panel
     anchorItem: button
@@ -248,14 +257,6 @@ Panel {
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(380))
     contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(560))
-
-    // PanelKeyCatcher maps "l" to move-right. Grab lockdown here so Right-arrow
-    // does not flip the kill switch.
-    Shortcut {
-      sequences: ["l", "L"]
-      enabled: root.opened && root.ready && !root.fieldFocused
-      onActivated: mullvad.setLockdown(!mullvad.lockdown)
-    }
 
     PanelKeyCatcher {
       id: keyCatcher

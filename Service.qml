@@ -43,10 +43,23 @@ Item {
 
   function clearError() { lastError = "" }
 
+  function markDaemonDown(message) {
+    daemonRunning = false
+    active = false
+    state = "error"
+    locationCountry = ""
+    locationCity = ""
+    lastError = message || "Mullvad daemon is not running"
+  }
+
   function applyStatus(status) {
     if (!status || status.ignored) return
     if (status.state === "error") {
       daemonRunning = false
+      active = false
+      state = "error"
+      locationCountry = ""
+      locationCity = ""
       return
     }
     daemonRunning = true
@@ -57,6 +70,7 @@ Item {
   }
 
   function applyAccount(account) {
+    if (!account.loggedIn && daemonRunning === false) return
     loggedIn = account.loggedIn === true
     accountExpiry = account.accountExpiry || ""
     deviceName = account.deviceName || ""
@@ -266,6 +280,7 @@ Item {
     }
     onExited: function() {
       if (!root._listenWanted) return
+      root.refresh()
       fallbackPoll.interval = root.refreshIntervalSec * 1000
       fallbackPoll.running = true
       listenRestart.interval = root._listenBackoffMs
@@ -297,11 +312,8 @@ Item {
     stderr: StdioCollector { id: snapshotErr; waitForEnd: true }
     onExited: function(exitCode) {
       if (exitCode === 0) root.applyStatus(Model.parseStatusJson(snapshotOut.text))
-      else {
-        root.daemonRunning = false
-        root.lastError = String(snapshotErr.text || "").trim() || "Mullvad daemon is not running"
-      }
-      if (root.installed) {
+      else root.markDaemonDown(String(snapshotErr.text || "").trim() || "Mullvad daemon is not running")
+      if (root.installed && root.daemonRunning) {
         accountProcess.command = ["mullvad", "account", "get"]
         accountProcess.running = true
       }

@@ -135,6 +135,21 @@ test("parseAccountGet treats non-zero exit as logged out", () => {
   assert.equal(account.deviceName, "");
 });
 
+test("parseAccountGet does not include account digits in failed parse error", () => {
+  const account = Model.parseAccountGet("Mullvad account:    0000000000000000", 1);
+  assert.equal(account.loggedIn, false);
+  assert.equal(account.error, "Could not read Mullvad account.");
+  assert.equal(account.error.includes("0000000000000000"), false);
+  assert.equal(/\d{16}/.test(account.error), false);
+});
+
+test("parseAccountGet strips 16-digit sequences from generic errors", () => {
+  const account = Model.parseAccountGet("command failed for 1234567890123456", 1);
+  assert.equal(account.loggedIn, false);
+  assert.equal(account.error.includes("1234567890123456"), false);
+  assert.equal(/\d{16}/.test(account.error), false);
+});
+
 test("parseLockdownGet reads on/off", () => {
   assert.equal(
     Model.parseLockdownGet("Block traffic when the VPN is disconnected: off"),

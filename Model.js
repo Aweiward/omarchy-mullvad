@@ -112,16 +112,24 @@ function parseStatusJson(raw) {
   };
 }
 
+function sanitizeAccountError(raw) {
+  var text = String(raw || "").trim();
+  if (text.indexOf("Mullvad account:") !== -1) {
+    return "Could not read Mullvad account.";
+  }
+  return text.replace(/\d{16}/g, "").replace(/[ \t]{2,}/g, " ").trim();
+}
+
 function parseAccountGet(raw, exitCode) {
   if (exitCode !== 0) {
-    return { loggedIn: false, accountExpiry: "", deviceName: "", error: String(raw || "").trim() };
+    return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(raw) };
   }
   var text = String(raw || "");
   var expiryLine = text.match(/Expires at:\s+(\d{4}-\d{2}-\d{2})/);
   var deviceLine = text.match(/Device name:\s+(.+)$/m);
   var accountLine = text.match(/Mullvad account:\s+(\d+)/);
   if (!accountLine) {
-    return { loggedIn: false, accountExpiry: "", deviceName: "", error: text.trim() };
+    return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(text) };
   }
   return {
     loggedIn: true,

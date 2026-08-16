@@ -39,6 +39,18 @@ const cities = Model.parseRelayList(run(["relay", "list"]).out);
 assert.ok(cities.length > 10);
 assert.ok(cities.every((c) => c.countryCode && c.cityCode && !/-wg-/.test(c.city)));
 
+// The panel logs in by piping the account number to stdin instead of passing it
+// as an argv entry, so assert the CLI still prompts for it. A bogus number can
+// never log anyone in, so this leaves account state untouched.
+const { spawnSync } = require("node:child_process");
+const prompt = spawnSync("mullvad", ["account", "login"], {
+  input: "0000000000000000\n",
+  encoding: "utf8",
+  timeout: 30000
+});
+assert.notEqual(prompt.status, 0);
+assert.match(String(prompt.stdout || ""), /account number/i);
+
 console.log("cli-contract ok", {
   state: status.state,
   loggedIn: account.loggedIn,

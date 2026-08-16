@@ -31,6 +31,10 @@ That disables the widget and deletes the plugin checkout. It does **not** uninst
 
 Keys inside the panel: `j`/`k` move, Enter selects, `/` search, `t` tunnel, `l` lockdown, Esc closes.
 
+## Account handling
+
+Your account number is a credential, so the plugin never puts it on a command line where any local process could read it out of `/proc`. It runs `mullvad account login` with no argument and writes the number to that process's stdin. The plugin does not store the number itself — the daemon keeps the session — and it strips 16-digit sequences out of any CLI error it shows you.
+
 ## Requirements
 
 - Omarchy 4 (Quattro) / `omarchy-shell`
@@ -43,4 +47,4 @@ node --test tests/*.test.js
 tests/cli-contract.sh
 ```
 
-`cli-contract.sh` is read-only. It never connects, disconnects, logs in, or logs out.
+`cli-contract.sh` does not change your Mullvad state. It never connects, disconnects, or logs out. It does run `mullvad account login` once with an all-zero number to check that the CLI still prompts for the number on stdin; that number cannot log anyone in.

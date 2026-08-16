@@ -39,6 +39,7 @@ Item {
   property int _listenBackoffMs: 1000
   property bool _listenWanted: false
   property string _actionKind: ""
+  property string _pendingAccount: ""
   property string _snapshotKind: "all"
 
   function clearError() { lastError = "" }
@@ -133,7 +134,12 @@ Item {
     clearError()
     actionStatus = "Logging in…"
     _actionKind = "login"
-    actionProcess.command = ["mullvad", "account", "login", parsed.digits]
+    // The account number is a credential, so it never goes on the command line
+    // where any local process could read it from /proc. `mullvad account login`
+    // with no argument prompts for it and reads the answer from stdin.
+    _pendingAccount = parsed.digits
+    actionProcess.stdinEnabled = true
+    actionProcess.command = ["mullvad", "account", "login"]
     actionProcess.running = true
   }
 
@@ -374,7 +380,15 @@ Item {
     command: []
     stdout: StdioCollector { id: actionOut; waitForEnd: true }
     stderr: StdioCollector { id: actionErr; waitForEnd: true }
+    onStarted: {
+      if (root._pendingAccount === "") return
+      actionProcess.write(root._pendingAccount + "\n")
+      root._pendingAccount = ""
+      actionProcess.stdinEnabled = false
+    }
     onExited: function(exitCode) {
+      root._pendingAccount = ""
+      actionProcess.stdinEnabled = false
       root.finishAction(exitCode, actionOut.text, actionErr.text)
     }
   }

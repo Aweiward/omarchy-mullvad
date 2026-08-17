@@ -75,7 +75,7 @@ Item {
     loggedIn = account.loggedIn === true
     accountExpiry = account.accountExpiry || ""
     deviceName = account.deviceName || ""
-    if (!account.loggedIn && account.error) lastError = account.error
+    lastError = Model.nextAccountError(account, lastError)
   }
 
   function probe() {

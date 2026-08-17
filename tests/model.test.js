@@ -135,12 +135,42 @@ test("parseAccountGet treats non-zero exit as logged out", () => {
   assert.equal(account.deviceName, "");
 });
 
-test("parseAccountGet does not include account digits in failed parse error", () => {
-  const account = Model.parseAccountGet("Mullvad account:    0000000000000000", 1);
+test("parseAccountGet treats a revoked device as logged out without leaking the number", () => {
+  const account = Model.parseAccountGet(
+    "The current device has been revoked\nMullvad account: 0000000000000000",
+    0
+  );
   assert.equal(account.loggedIn, false);
-  assert.equal(account.error, "Could not read Mullvad account.");
-  assert.equal(account.error.includes("0000000000000000"), false);
+  assert.match(account.error, /revoked/i);
   assert.equal(/\d{16}/.test(account.error), false);
+});
+
+test("parseAccountGet treats account number with failed expiry fetch as logged in", () => {
+  // mullvad account get prints the number, then fetches expiry from the API.
+  // At boot that API call often fails, so the CLI exits 1 after:
+  //   Mullvad account:    0000000000000000
+  const account = Model.parseAccountGet("Mullvad account:    0000000000000000", 1);
+  assert.equal(account.loggedIn, true);
+  assert.equal(account.accountExpiry, "");
+  assert.equal(account.deviceName, "");
+  assert.equal(account.error, "");
+});
+
+test("nextAccountError drops a stale read error after a successful account parse", () => {
+  const failed = Model.parseAccountGet("error: daemon is offline", 1);
+  const stale = Model.nextAccountError(failed, "");
+  assert.equal(stale, "error: daemon is offline");
+
+  const ok = Model.parseAccountGet(
+    [
+      "Mullvad account:    0000000000000000",
+      "Expires at:         2026-09-12 20:25:29 -04:00",
+      "Device name:        Deep Robin"
+    ].join("\n"),
+    0
+  );
+  assert.equal(ok.loggedIn, true);
+  assert.equal(Model.nextAccountError(ok, stale), "");
 });
 
 test("parseAccountGet strips 16-digit sequences from generic errors", () => {

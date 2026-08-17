@@ -120,23 +120,34 @@ function sanitizeAccountError(raw) {
   return text.replace(/\d{16}/g, "").replace(/[ \t]{2,}/g, " ").trim();
 }
 
+function nextAccountError(account, previousError) {
+  if (account && account.loggedIn) return "";
+  if (account && account.error) return account.error;
+  return String(previousError || "");
+}
+
 function parseAccountGet(raw, exitCode) {
-  if (exitCode !== 0) {
-    return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(raw) };
-  }
   var text = String(raw || "");
+  if (/has been revoked/i.test(text)) {
+    return { loggedIn: false, accountExpiry: "", deviceName: "", error: "The current device has been revoked" };
+  }
   var expiryLine = text.match(/Expires at:\s+(\d{4}-\d{2}-\d{2})/);
   var deviceLine = text.match(/Device name:\s+(.+)$/m);
   var accountLine = text.match(/Mullvad account:\s+(\d+)/);
-  if (!accountLine) {
-    return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(text) };
+  // The CLI prints the account number before fetching expiry from the API.
+  // A non-zero exit after that line still means a local device is logged in.
+  if (accountLine) {
+    return {
+      loggedIn: true,
+      accountExpiry: expiryLine ? expiryLine[1] : "",
+      deviceName: deviceLine ? deviceLine[1].trim() : "",
+      error: ""
+    };
   }
-  return {
-    loggedIn: true,
-    accountExpiry: expiryLine ? expiryLine[1] : "",
-    deviceName: deviceLine ? deviceLine[1].trim() : "",
-    error: ""
-  };
+  if (exitCode !== 0) {
+    return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(raw) };
+  }
+  return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(text) };
 }
 
 function parseLockdownGet(raw) {
@@ -185,6 +196,7 @@ if (typeof module !== "undefined" && module.exports) {
     normalizeAccountNumber: normalizeAccountNumber,
     parseStatusJson: parseStatusJson,
     parseAccountGet: parseAccountGet,
+    nextAccountError: nextAccountError,
     parseLockdownGet: parseLockdownGet,
     parseRelayGet: parseRelayGet,
     mergeRecentCities: mergeRecentCities

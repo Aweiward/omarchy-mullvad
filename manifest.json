@@ -2,22 +2,23 @@
   "schemaVersion": 1,
   "id": "aweiward.mullvad",
   "name": "Mullvad",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Aweiward",
   "license": "MIT",
-  "description": "Mullvad status, connect/disconnect, city picker, login, and lockdown in the Omarchy bar.",
+  "description": "Mullvad status, connect/disconnect, city picker, login, lockdown, auto-connect, LAN sharing, DNS blockers, and drop/expiry alerts in the Omarchy bar.",
   "kinds": ["bar-widget"],
   "entryPoints": {
     "barWidget": "Panel.qml"
   },
   "barWidget": {
     "displayName": "Mullvad",
-    "description": "Toggle Mullvad, pick a city, sign in, and control lockdown.",
+    "description": "Toggle Mullvad, pick a city, sign in, and flip lockdown, auto-connect, LAN sharing, and DNS blocking.",
     "category": "Network",
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
       "refreshIntervalSec": 30,
+      "expiryWarnDays": 7,
       "recentCities": []
     },
     "schema": [
@@ -29,6 +30,15 @@
         "max": 3600,
         "step": 5,
         "defaultValue": 30
+      },
+      {
+        "key": "expiryWarnDays",
+        "type": "integer",
+        "label": "Warn when the account expires within (days)",
+        "min": 1,
+        "max": 90,
+        "step": 1,
+        "defaultValue": 7
       }
     ]
   }

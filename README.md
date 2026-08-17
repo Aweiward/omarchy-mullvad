@@ -35,7 +35,7 @@ The ads & trackers switch drives Mullvad's DNS content blocking and re-sends you
 
 ## Staying informed
 
-You get a desktop notification when the tunnel drops without you asking it to — critical if your traffic is exposed, quieter if lockdown is already blocking everything — and when the Mullvad daemon stops. Nothing fires when you disconnect on purpose.
+You get a desktop notification when an established tunnel drops without you asking it to — critical if your traffic is exposed, quieter if lockdown is already blocking everything — and when the Mullvad daemon stops. Nothing fires when you disconnect on purpose.
 
 When your account is within 7 days of expiring, the panel shows an urgent line with a **Top up** link to mullvad.net/account, the bar icon shows its warning badge, and you get one notification per session. Set `expiryWarnDays` in the widget's bar entry to change the threshold.
 

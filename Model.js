@@ -150,6 +150,24 @@ function parseAccountGet(raw, exitCode) {
   return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(text) };
 }
 
+function dropNotification(prevState, nextState, userInitiated, lockedDown) {
+  if (userInitiated) return null;
+  if (prevState !== "connected") return null;
+  if (nextState !== "disconnected" && nextState !== "error") return null;
+  if (lockedDown) {
+    return {
+      summary: "Mullvad tunnel down",
+      body: "Lockdown is blocking all traffic until you reconnect.",
+      urgency: "normal"
+    };
+  }
+  return {
+    summary: "Mullvad tunnel down",
+    body: "Your traffic is unprotected.",
+    urgency: "critical"
+  };
+}
+
 function daysUntilExpiry(expiry, now) {
   var m = String(expiry || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;
@@ -258,6 +276,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseStatusJson: parseStatusJson,
     parseAccountGet: parseAccountGet,
     nextAccountError: nextAccountError,
+    dropNotification: dropNotification,
     daysUntilExpiry: daysUntilExpiry,
     expiryWarningText: expiryWarningText,
     parseLockdownGet: parseLockdownGet,

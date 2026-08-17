@@ -58,10 +58,15 @@ Item {
   property string _pendingAccount: ""
   property string _snapshotKind: "all"
   property bool _expiryNotified: false
+  property double _expectDropUntil: 0
+  property double _lastDropNotifyMs: 0
 
   function clearError() { lastError = "" }
 
   function markDaemonDown(message) {
+    if (daemonRunning) {
+      notify("Mullvad daemon stopped", "The VPN is down and your traffic is unprotected.", "critical")
+    }
     daemonRunning = false
     active = false
     state = "error"
@@ -72,19 +77,26 @@ Item {
 
   function applyStatus(status) {
     if (!status || status.ignored) return
+    var prevState = state
     if (status.state === "error") {
       daemonRunning = false
       active = false
       state = "error"
       locationCountry = ""
       locationCity = ""
-      return
+    } else {
+      daemonRunning = true
+      state = status.state
+      active = status.active
+      locationCountry = status.locationCountry
+      locationCity = status.locationCity
     }
-    daemonRunning = true
-    state = status.state
-    active = status.active
-    locationCountry = status.locationCountry
-    locationCity = status.locationCity
+    var userInitiated = actionProcess.running || Date.now() < _expectDropUntil
+    var drop = Model.dropNotification(prevState, state, userInitiated, lockdown)
+    if (drop && Date.now() - _lastDropNotifyMs > 60000) {
+      _lastDropNotifyMs = Date.now()
+      notify(drop.summary, drop.body, drop.urgency)
+    }
   }
 
   function applyAccount(account) {
@@ -104,9 +116,10 @@ Item {
     }
   }
 
-  function notify(summary, body) {
+  function notify(summary, body, urgency) {
     if (notifyProcess.running) return
-    notifyProcess.command = ["notify-send", "--app-name=Mullvad", summary, body || ""]
+    notifyProcess.command = ["notify-send", "--app-name=Mullvad",
+                             "--urgency=" + (urgency || "normal"), summary, body || ""]
     notifyProcess.running = true
   }
 
@@ -187,6 +200,7 @@ Item {
     if (active) {
       actionStatus = "Disconnecting…"
       _actionKind = "logout-after-disconnect"
+      _expectDropUntil = Date.now() + 5000
       actionProcess.command = ["mullvad", "disconnect"]
       actionProcess.running = true
       return
@@ -211,6 +225,7 @@ Item {
     clearError()
     actionStatus = "Disconnecting…"
     _actionKind = "disconnect"
+    _expectDropUntil = Date.now() + 5000
     actionProcess.command = ["mullvad", "disconnect"]
     actionProcess.running = true
   }
@@ -316,6 +331,7 @@ Item {
       relayGetProcess.running = true
       if (active || state === "connecting") {
         _actionKind = "reconnect"
+        _expectDropUntil = Date.now() + 5000
         actionProcess.command = ["mullvad", "reconnect"]
         actionProcess.running = true
         return

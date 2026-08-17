@@ -280,6 +280,30 @@ test("expiryWarningText spells out expired, today, tomorrow, and N days", () => 
   assert.equal(Model.expiryWarningText(6), "Account expires in 6 days");
 });
 
+test("dropNotification fires on an unexpected connected-to-down transition", () => {
+  const drop = Model.dropNotification("connected", "disconnected", false, false);
+  assert.match(drop.summary, /tunnel down/i);
+  assert.match(drop.body, /unprotected/i);
+  assert.equal(drop.urgency, "critical");
+
+  const error = Model.dropNotification("connected", "error", false, false);
+  assert.match(error.summary, /tunnel down/i);
+});
+
+test("dropNotification softens the message when lockdown is blocking traffic", () => {
+  const drop = Model.dropNotification("connected", "disconnected", false, true);
+  assert.match(drop.body, /lockdown/i);
+  assert.equal(drop.urgency, "normal");
+});
+
+test("dropNotification stays quiet for expected or non-drop transitions", () => {
+  assert.equal(Model.dropNotification("connected", "disconnected", true, false), null);
+  assert.equal(Model.dropNotification("connected", "connecting", false, false), null);
+  assert.equal(Model.dropNotification("disconnected", "disconnected", false, false), null);
+  assert.equal(Model.dropNotification("", "disconnected", false, false), null);
+  assert.equal(Model.dropNotification("connecting", "disconnected", false, false), null);
+});
+
 test("parseRelayGet reads country and optional city", () => {
   const countryOnly = Model.parseRelayGet("    Location:               country se");
   assert.deepEqual(countryOnly, { country: "se", city: "" });

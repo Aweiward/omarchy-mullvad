@@ -257,6 +257,29 @@ test("buildDnsSetArgs clears only ads+trackers when toggled off", () => {
   ]);
 });
 
+test("daysUntilExpiry counts calendar days from now to the expiry date", () => {
+  const now = new Date(2026, 7, 17, 23, 30);
+  assert.equal(Model.daysUntilExpiry("2026-08-24", now), 7);
+  assert.equal(Model.daysUntilExpiry("2026-08-17", now), 0);
+  assert.equal(Model.daysUntilExpiry("2026-08-16", now), -1);
+  assert.equal(Model.daysUntilExpiry("2026-09-17", now), 31);
+});
+
+test("daysUntilExpiry treats missing or malformed expiry as unknown", () => {
+  const now = new Date(2026, 7, 17);
+  assert.equal(Model.daysUntilExpiry("", now), null);
+  assert.equal(Model.daysUntilExpiry(null, now), null);
+  assert.equal(Model.daysUntilExpiry("soon", now), null);
+});
+
+test("expiryWarningText spells out expired, today, tomorrow, and N days", () => {
+  assert.equal(Model.expiryWarningText(null), "");
+  assert.equal(Model.expiryWarningText(-3), "Account expired");
+  assert.equal(Model.expiryWarningText(0), "Account expires today");
+  assert.equal(Model.expiryWarningText(1), "Account expires tomorrow");
+  assert.equal(Model.expiryWarningText(6), "Account expires in 6 days");
+});
+
 test("parseRelayGet reads country and optional city", () => {
   const countryOnly = Model.parseRelayGet("    Location:               country se");
   assert.deepEqual(countryOnly, { country: "se", city: "" });

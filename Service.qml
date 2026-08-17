@@ -12,6 +12,8 @@ Item {
   property bool daemonRunning: false
   property bool loggedIn: false
   property string accountExpiry: ""
+  property var expiryDaysLeft: null
+  readonly property bool expiryWarning: loggedIn && expiryDaysLeft !== null && expiryDaysLeft <= expiryWarnDays
   property string deviceName: ""
   property bool active: false
   property string state: "disconnected"
@@ -30,6 +32,13 @@ Item {
   property string lastError: ""
   property string actionStatus: ""
 
+  readonly property int expiryWarnDays: {
+    var n = parseInt(String(settings && settings.expiryWarnDays != null ? settings.expiryWarnDays : 7), 10)
+    if (!isFinite(n)) n = 7
+    if (n < 1) n = 1
+    if (n > 90) n = 90
+    return n
+  }
   readonly property int refreshIntervalSec: {
     var n = parseInt(String(settings && settings.refreshIntervalSec != null ? settings.refreshIntervalSec : 30), 10)
     if (!isFinite(n)) n = 30
@@ -48,6 +57,7 @@ Item {
   property string _actionKind: ""
   property string _pendingAccount: ""
   property string _snapshotKind: "all"
+  property bool _expiryNotified: false
 
   function clearError() { lastError = "" }
 
@@ -83,6 +93,27 @@ Item {
     accountExpiry = account.accountExpiry || ""
     deviceName = account.deviceName || ""
     lastError = Model.nextAccountError(account, lastError)
+    expiryDaysLeft = Model.daysUntilExpiry(accountExpiry, new Date())
+    if (!loggedIn) {
+      _expiryNotified = false
+      return
+    }
+    if (expiryWarning && !_expiryNotified) {
+      _expiryNotified = true
+      notify(Model.expiryWarningText(expiryDaysLeft), "Top up at mullvad.net/account to keep the VPN running.")
+    }
+  }
+
+  function notify(summary, body) {
+    if (notifyProcess.running) return
+    notifyProcess.command = ["notify-send", "--app-name=Mullvad", summary, body || ""]
+    notifyProcess.running = true
+  }
+
+  function openAccountPage() {
+    if (openUrlProcess.running) return
+    openUrlProcess.command = ["xdg-open", "https://mullvad.net/account"]
+    openUrlProcess.running = true
   }
 
   function probe() {
@@ -477,6 +508,18 @@ Item {
       actionProcess.stdinEnabled = false
       root.finishAction(exitCode, actionOut.text, actionErr.text)
     }
+  }
+
+  Process {
+    id: notifyProcess
+    running: false
+    command: []
+  }
+
+  Process {
+    id: openUrlProcess
+    running: false
+    command: []
   }
 
   Process {

@@ -150,6 +150,24 @@ function parseAccountGet(raw, exitCode) {
   return { loggedIn: false, accountExpiry: "", deviceName: "", error: sanitizeAccountError(text) };
 }
 
+function daysUntilExpiry(expiry, now) {
+  var m = String(expiry || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  var n = new Date(now);
+  if (isNaN(n.getTime())) return null;
+  var expiryDay = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  var today = Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
+  return Math.round((expiryDay - today) / 86400000);
+}
+
+function expiryWarningText(daysLeft) {
+  if (daysLeft === null || daysLeft === undefined) return "";
+  if (daysLeft < 0) return "Account expired";
+  if (daysLeft === 0) return "Account expires today";
+  if (daysLeft === 1) return "Account expires tomorrow";
+  return "Account expires in " + daysLeft + " days";
+}
+
 function parseLockdownGet(raw) {
   return /:\s*on\s*$/im.test(String(raw || ""));
 }
@@ -240,6 +258,8 @@ if (typeof module !== "undefined" && module.exports) {
     parseStatusJson: parseStatusJson,
     parseAccountGet: parseAccountGet,
     nextAccountError: nextAccountError,
+    daysUntilExpiry: daysUntilExpiry,
+    expiryWarningText: expiryWarningText,
     parseLockdownGet: parseLockdownGet,
     parseAutoConnectGet: parseAutoConnectGet,
     parseLanGet: parseLanGet,

@@ -228,7 +228,7 @@ Panel {
           color: root.barIconColor
           badgeColor: root.urgent
           crossed: root.iconCrossed
-          warning: !mullvad.installed || !mullvad.loggedIn
+          warning: !mullvad.installed || !mullvad.loggedIn || mullvad.expiryWarning
         }
       }
     }
@@ -320,7 +320,7 @@ Panel {
                   color: root.iconColor
                   badgeColor: root.urgent
                   crossed: root.iconCrossed
-                  warning: !mullvad.installed || !mullvad.loggedIn
+                  warning: !mullvad.installed || !mullvad.loggedIn || mullvad.expiryWarning
                 }
               }
               trailingControl: Component {
@@ -341,6 +341,22 @@ Panel {
                   }
                 }
               }
+            }
+          }
+
+          Text {
+            visible: root.ready && mullvad.expiryWarning
+            width: parent.width
+            text: Model.expiryWarningText(mullvad.expiryDaysLeft) + " · Top up"
+            color: root.urgent
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            wrapMode: Text.WordWrap
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: mullvad.openAccountPage()
             }
           }
 

@@ -20,6 +20,12 @@ Item {
   property string relayCountry: ""
   property string relayCity: ""
   property bool lockdown: false
+  property bool autoConnect: false
+  property bool lanSharing: false
+  property var dns: null
+  readonly property bool dnsKnown: dns !== null
+  readonly property bool dnsCustom: dns !== null && dns.custom === true
+  readonly property bool dnsBlockAdsTrackers: dns !== null && dns.blockAds === true && dns.blockTrackers === true
   property var cities: []
   property string lastError: ""
   property string actionStatus: ""
@@ -33,6 +39,7 @@ Item {
   }
   readonly property bool busy: whichProcess.running || snapshotProcess.running || accountProcess.running
                                || lockdownGetProcess.running || relayGetProcess.running || relayListProcess.running
+                               || autoConnectGetProcess.running || lanGetProcess.running || dnsGetProcess.running
                                || actionProcess.running || installProcess.running || daemonStartProcess.running
 
   property var _pendingCity: null
@@ -207,6 +214,37 @@ Item {
     actionProcess.running = true
   }
 
+  function setAutoConnect(on) {
+    if (actionProcess.running) return
+    clearError()
+    actionStatus = on ? "Enabling auto-connect…" : "Disabling auto-connect…"
+    _actionKind = "auto-connect"
+    actionProcess.command = ["mullvad", "auto-connect", "set", on ? "on" : "off"]
+    actionProcess.running = true
+  }
+
+  function setLanSharing(on) {
+    if (actionProcess.running) return
+    clearError()
+    actionStatus = on ? "Allowing LAN sharing…" : "Blocking LAN sharing…"
+    _actionKind = "lan"
+    actionProcess.command = ["mullvad", "lan", "set", on ? "allow" : "block"]
+    actionProcess.running = true
+  }
+
+  function setDnsBlockAdsTrackers(on) {
+    if (actionProcess.running) return
+    // `mullvad dns set default` replaces the whole DNS config, so never
+    // toggle blind: skip when the current config is unknown, and never
+    // clobber a custom DNS server the user set outside the widget.
+    if (dns === null || dns.custom === true) return
+    clearError()
+    actionStatus = "Updating DNS blockers…"
+    _actionKind = "dns"
+    actionProcess.command = ["mullvad"].concat(Model.buildDnsSetArgs(dns, on === true))
+    actionProcess.running = true
+  }
+
   function finishAction(exitCode, stdout, stderr) {
     var err = String(stderr || stdout || "").trim()
     var kind = _actionKind
@@ -229,6 +267,18 @@ Item {
     if (kind === "lockdown") {
       lockdownGetProcess.command = ["mullvad", "lockdown-mode", "get"]
       lockdownGetProcess.running = true
+    }
+    if (kind === "auto-connect") {
+      autoConnectGetProcess.command = ["mullvad", "auto-connect", "get"]
+      autoConnectGetProcess.running = true
+    }
+    if (kind === "lan") {
+      lanGetProcess.command = ["mullvad", "lan", "get"]
+      lanGetProcess.running = true
+    }
+    if (kind === "dns") {
+      dnsGetProcess.command = ["mullvad", "dns", "get"]
+      dnsGetProcess.running = true
     }
     if (kind === "set-city") {
       relayGetProcess.command = ["mullvad", "relay", "get"]
@@ -360,6 +410,42 @@ Item {
       var relay = Model.parseRelayGet(relayOut.text)
       root.relayCountry = relay.country
       root.relayCity = relay.city
+      autoConnectGetProcess.command = ["mullvad", "auto-connect", "get"]
+      autoConnectGetProcess.running = true
+    }
+  }
+
+  Process {
+    id: autoConnectGetProcess
+    running: false
+    command: []
+    stdout: StdioCollector { id: autoConnectOut; waitForEnd: true }
+    onExited: function() {
+      root.autoConnect = Model.parseAutoConnectGet(autoConnectOut.text)
+      lanGetProcess.command = ["mullvad", "lan", "get"]
+      lanGetProcess.running = true
+    }
+  }
+
+  Process {
+    id: lanGetProcess
+    running: false
+    command: []
+    stdout: StdioCollector { id: lanOut; waitForEnd: true }
+    onExited: function() {
+      root.lanSharing = Model.parseLanGet(lanOut.text)
+      dnsGetProcess.command = ["mullvad", "dns", "get"]
+      dnsGetProcess.running = true
+    }
+  }
+
+  Process {
+    id: dnsGetProcess
+    running: false
+    command: []
+    stdout: StdioCollector { id: dnsOut; waitForEnd: true }
+    onExited: function() {
+      root.dns = Model.parseDnsGet(dnsOut.text)
     }
   }
 

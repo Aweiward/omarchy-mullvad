@@ -13,6 +13,7 @@ Panel {
   manageIpc: false
 
   property string focusSection: "header"
+  readonly property var toggleSections: ["lockdown", "autoconnect", "lan", "dns"]
   property int cityIndex: 0
   property bool cursorActive: false
   property string cityQuery: ""
@@ -98,16 +99,18 @@ Panel {
     ensureCursor()
     if (dy === 0) return
     if (focusSection === "header") {
-      if (dy > 0) focusSection = "lockdown"
+      if (dy > 0) focusSection = toggleSections[0]
       return
     }
-    if (focusSection === "lockdown") {
-      if (dy < 0) { focusSection = "header"; return }
-      if (dy > 0 && visibleCities.length > 0) { focusSection = "cities"; cityIndex = 0 }
+    var ti = toggleSections.indexOf(focusSection)
+    if (ti !== -1) {
+      if (dy < 0) { focusSection = ti === 0 ? "header" : toggleSections[ti - 1]; return }
+      if (ti < toggleSections.length - 1) { focusSection = toggleSections[ti + 1]; return }
+      if (visibleCities.length > 0) { focusSection = "cities"; cityIndex = 0 }
       return
     }
     if (focusSection === "cities") {
-      if (dy < 0 && cityIndex === 0) { focusSection = "lockdown"; return }
+      if (dy < 0 && cityIndex === 0) { focusSection = toggleSections[toggleSections.length - 1]; return }
       cityIndex = Math.max(0, Math.min(visibleCities.length - 1, cityIndex + dy))
     }
   }
@@ -116,6 +119,9 @@ Panel {
     ensureCursor()
     if (focusSection === "header") mullvad.toggleTunnel()
     else if (focusSection === "lockdown") mullvad.setLockdown(!mullvad.lockdown)
+    else if (focusSection === "autoconnect") mullvad.setAutoConnect(!mullvad.autoConnect)
+    else if (focusSection === "lan") mullvad.setLanSharing(!mullvad.lanSharing)
+    else if (focusSection === "dns") mullvad.setDnsBlockAdsTrackers(!mullvad.dnsBlockAdsTrackers)
     else if (focusSection === "cities") chooseCity(selectedCity())
     else if (focusSection === "install") mullvad.installDaemon()
     else if (focusSection === "login") submitLogin()
@@ -128,9 +134,9 @@ Panel {
     if (panelFlick) panelFlick.contentY = 0
   }
 
-  function setLockdownCursor() {
+  function setToggleCursor(section) {
     cursorActive = true
-    focusSection = "lockdown"
+    focusSection = section
   }
 
   function setCityCursor(index) {
@@ -497,52 +503,38 @@ Panel {
             }
           }
 
-          CursorSurface {
-            id: lockdownRow
-            visible: root.ready
+          SettingRow {
+            section: "lockdown"
+            label: "Lockdown"
+            checked: mullvad.lockdown
             width: parent.width
-            implicitHeight: Math.max(Style.space(36), lockdownInner.implicitHeight + Style.spacing.rowPaddingX)
-            hasCursor: root.cursorActive && root.focusSection === "lockdown"
-            foreground: root.foreground
-            fill: root.hoverFill
+            onToggleRequested: mullvad.setLockdown(!mullvad.lockdown)
+          }
 
-            MouseArea {
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: mullvad.busy ? Qt.ArrowCursor : Qt.PointingHandCursor
-              enabled: !mullvad.busy
-              onEntered: root.setLockdownCursor()
-              onClicked: mullvad.setLockdown(!mullvad.lockdown)
-            }
+          SettingRow {
+            section: "autoconnect"
+            label: "Auto-connect"
+            checked: mullvad.autoConnect
+            width: parent.width
+            onToggleRequested: mullvad.setAutoConnect(!mullvad.autoConnect)
+          }
 
-            Row {
-              id: lockdownInner
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              anchors.leftMargin: Style.space(10)
-              anchors.rightMargin: Style.space(8)
-              spacing: Style.space(10)
+          SettingRow {
+            section: "lan"
+            label: "LAN sharing"
+            checked: mullvad.lanSharing
+            width: parent.width
+            onToggleRequested: mullvad.setLanSharing(!mullvad.lanSharing)
+          }
 
-              Text {
-                text: "Lockdown"
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.body
-                width: parent.width - lockdownSwitch.width - parent.spacing
-                anchors.verticalCenter: parent.verticalCenter
-              }
-
-              ToggleSwitch {
-                id: lockdownSwitch
-                checked: mullvad.lockdown
-                busy: mullvad.busy
-                interactive: false
-                cursorRing: false
-                foreground: root.foreground
-                anchors.verticalCenter: parent.verticalCenter
-              }
-            }
+          SettingRow {
+            section: "dns"
+            label: "Block ads & trackers"
+            checked: mullvad.dnsBlockAdsTrackers
+            rowEnabled: mullvad.dnsKnown && !mullvad.dnsCustom
+            hint: mullvad.dnsCustom ? "Custom DNS is active; manage blocking with the CLI." : ""
+            width: parent.width
+            onToggleRequested: mullvad.setDnsBlockAdsTrackers(!mullvad.dnsBlockAdsTrackers)
           }
 
           Column {
@@ -633,6 +625,77 @@ Panel {
             }
           }
         }
+      }
+    }
+  }
+
+  component SettingRow: CursorSurface {
+    id: settingRow
+    property string label: ""
+    property string section: ""
+    property bool checked: false
+    property bool rowEnabled: true
+    property string hint: ""
+    signal toggleRequested()
+
+    visible: root.ready
+    implicitHeight: Math.max(Style.space(36), settingInner.implicitHeight + Style.spacing.rowPaddingX)
+    hasCursor: root.cursorActive && root.focusSection === settingRow.section
+    foreground: root.foreground
+    fill: root.hoverFill
+
+    MouseArea {
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: (mullvad.busy || !settingRow.rowEnabled) ? Qt.ArrowCursor : Qt.PointingHandCursor
+      enabled: !mullvad.busy && settingRow.rowEnabled
+      onEntered: root.setToggleCursor(settingRow.section)
+      onClicked: settingRow.toggleRequested()
+    }
+
+    Row {
+      id: settingInner
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.leftMargin: Style.space(10)
+      anchors.rightMargin: Style.space(8)
+      spacing: Style.space(10)
+
+      Column {
+        width: parent.width - settingSwitch.width - parent.spacing
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Style.space(2)
+
+        Text {
+          width: parent.width
+          text: settingRow.label
+          color: settingRow.rowEnabled ? root.foreground : root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.body
+          elide: Text.ElideRight
+        }
+
+        Text {
+          visible: settingRow.hint !== ""
+          width: parent.width
+          text: settingRow.hint
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+      }
+
+      ToggleSwitch {
+        id: settingSwitch
+        checked: settingRow.checked
+        busy: mullvad.busy
+        interactive: false
+        cursorRing: false
+        foreground: root.foreground
+        opacity: settingRow.rowEnabled ? 1.0 : 0.4
+        anchors.verticalCenter: parent.verticalCenter
       }
     }
   }

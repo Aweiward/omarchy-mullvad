@@ -154,6 +154,49 @@ function parseLockdownGet(raw) {
   return /:\s*on\s*$/im.test(String(raw || ""));
 }
 
+function parseAutoConnectGet(raw) {
+  return /:\s*on\s*$/im.test(String(raw || ""));
+}
+
+function parseLanGet(raw) {
+  return /:\s*allow\s*$/im.test(String(raw || ""));
+}
+
+var DNS_CATEGORIES = [
+  { key: "blockAds", line: "Block ads", flag: "--block-ads" },
+  { key: "blockTrackers", line: "Block trackers", flag: "--block-trackers" },
+  { key: "blockMalware", line: "Block malware", flag: "--block-malware" },
+  { key: "blockAdultContent", line: "Block adult content", flag: "--block-adult-content" },
+  { key: "blockGambling", line: "Block gambling", flag: "--block-gambling" },
+  { key: "blockSocialMedia", line: "Block social media", flag: "--block-social-media" }
+];
+
+function parseDnsGet(raw) {
+  var text = String(raw || "");
+  var customMatch = text.match(/^Custom DNS:\s*(yes|no)\b/im);
+  if (!customMatch) return null;
+  var dns = { custom: customMatch[1].toLowerCase() === "yes" };
+  for (var i = 0; i < DNS_CATEGORIES.length; i++) {
+    var cat = DNS_CATEGORIES[i];
+    dns[cat.key] = new RegExp("^" + cat.line + ":\\s*true\\s*$", "im").test(text);
+  }
+  return dns;
+}
+
+// `mullvad dns set default` replaces the whole DNS blocking config, so the
+// ads+trackers toggle must re-send every other category it is not changing.
+function buildDnsSetArgs(dns, adsAndTrackersOn) {
+  var args = ["dns", "set", "default"];
+  for (var i = 0; i < DNS_CATEGORIES.length; i++) {
+    var cat = DNS_CATEGORIES[i];
+    var on = cat.key === "blockAds" || cat.key === "blockTrackers"
+      ? adsAndTrackersOn === true
+      : dns && dns[cat.key] === true;
+    if (on) args.push(cat.flag);
+  }
+  return args;
+}
+
 function parseRelayGet(raw) {
   var text = String(raw || "");
   var country = "";
@@ -198,6 +241,10 @@ if (typeof module !== "undefined" && module.exports) {
     parseAccountGet: parseAccountGet,
     nextAccountError: nextAccountError,
     parseLockdownGet: parseLockdownGet,
+    parseAutoConnectGet: parseAutoConnectGet,
+    parseLanGet: parseLanGet,
+    parseDnsGet: parseDnsGet,
+    buildDnsSetArgs: buildDnsSetArgs,
     parseRelayGet: parseRelayGet,
     mergeRecentCities: mergeRecentCities
   };

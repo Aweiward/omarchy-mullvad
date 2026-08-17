@@ -191,6 +191,72 @@ test("parseLockdownGet reads on/off", () => {
   );
 });
 
+test("parseAutoConnectGet reads on/off", () => {
+  assert.equal(Model.parseAutoConnectGet("Autoconnect: off"), false);
+  assert.equal(Model.parseAutoConnectGet("Autoconnect: on"), true);
+  assert.equal(Model.parseAutoConnectGet(""), false);
+});
+
+test("parseLanGet reads allow/block", () => {
+  assert.equal(Model.parseLanGet("Local network sharing setting: block"), false);
+  assert.equal(Model.parseLanGet("Local network sharing setting: allow"), true);
+  assert.equal(Model.parseLanGet(""), false);
+});
+
+const dnsGetDefault = [
+  "Custom DNS: no",
+  "Block ads: false",
+  "Block trackers: false",
+  "Block malware: true",
+  "Block adult content: false",
+  "Block gambling: false",
+  "Block social media: false"
+].join("\n");
+
+test("parseDnsGet reads custom flag and block categories", () => {
+  const dns = Model.parseDnsGet(dnsGetDefault);
+  assert.deepEqual(dns, {
+    custom: false,
+    blockAds: false,
+    blockTrackers: false,
+    blockMalware: true,
+    blockAdultContent: false,
+    blockGambling: false,
+    blockSocialMedia: false
+  });
+});
+
+test("parseDnsGet flags custom DNS", () => {
+  const dns = Model.parseDnsGet("Custom DNS: yes\nServers:\n\t1.1.1.1");
+  assert.equal(dns.custom, true);
+});
+
+test("parseDnsGet returns null when output is unrecognizable", () => {
+  assert.equal(Model.parseDnsGet(""), null);
+  assert.equal(Model.parseDnsGet(null), null);
+  assert.equal(Model.parseDnsGet("error: daemon is offline"), null);
+});
+
+test("buildDnsSetArgs sets ads+trackers and preserves other categories", () => {
+  const dns = Model.parseDnsGet(dnsGetDefault);
+  assert.deepEqual(Model.buildDnsSetArgs(dns, true), [
+    "dns", "set", "default",
+    "--block-ads", "--block-trackers", "--block-malware"
+  ]);
+});
+
+test("buildDnsSetArgs clears only ads+trackers when toggled off", () => {
+  const dns = Model.parseDnsGet(
+    dnsGetDefault.replace("Block ads: false", "Block ads: true")
+      .replace("Block trackers: false", "Block trackers: true")
+      .replace("Block gambling: false", "Block gambling: true")
+  );
+  assert.deepEqual(Model.buildDnsSetArgs(dns, false), [
+    "dns", "set", "default",
+    "--block-malware", "--block-gambling"
+  ]);
+});
+
 test("parseRelayGet reads country and optional city", () => {
   const countryOnly = Model.parseRelayGet("    Location:               country se");
   assert.deepEqual(countryOnly, { country: "se", city: "" });

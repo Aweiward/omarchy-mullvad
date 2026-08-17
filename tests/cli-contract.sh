@@ -35,6 +35,19 @@ assert.equal(typeof lockdown, "boolean");
 const relay = Model.parseRelayGet(run(["relay", "get"]).out);
 assert.equal(typeof relay.country, "string");
 
+const autoConnect = Model.parseAutoConnectGet(run(["auto-connect", "get"]).out);
+assert.equal(typeof autoConnect, "boolean");
+
+const lan = Model.parseLanGet(run(["lan", "get"]).out);
+assert.equal(typeof lan, "boolean");
+
+// dns get must stay parseable: the ads+trackers toggle re-sends the other
+// block categories from this parse, so null here would disable the toggle.
+const dns = Model.parseDnsGet(run(["dns", "get"]).out);
+assert.notEqual(dns, null);
+assert.equal(typeof dns.custom, "boolean");
+assert.equal(typeof dns.blockAds, "boolean");
+
 const cities = Model.parseRelayList(run(["relay", "list"]).out);
 assert.ok(cities.length > 10);
 assert.ok(cities.every((c) => c.countryCode && c.cityCode && !/-wg-/.test(c.city)));

@@ -2,7 +2,7 @@
 
 A status-bar plugin for [Omarchy](https://omarchy.org) Quattro that puts Mullvad VPN on the desktop instead of in a terminal.
 
-Click the themed mark to see whether you are connected, pick a city, turn the tunnel on or off, log in with your account number, and toggle lockdown. Right-click the icon to connect or disconnect without opening the panel. It talks to the official `mullvad` CLI, so the daemon you already trust is still what is running.
+Click the themed mark to see whether you are connected, pick a city, turn the tunnel on or off, log in with your account number, and flip the daily-driver switches: lockdown, auto-connect, LAN sharing, and Mullvad's DNS ad & tracker blocking. Right-click the icon to connect or disconnect without opening the panel. It talks to the official `mullvad` CLI, so the daemon you already trust is still what is running.
 
 ![Mullvad panel on the Omarchy bar](preview.png)
 
@@ -27,9 +27,17 @@ That disables the widget and deletes the plugin checkout. It does **not** uninst
 - Left click: panel
 - Right click: connect / disconnect (opens the panel if you are logged out)
 - Middle click: refresh
-- Panel: account number login, city search, lockdown, log out
+- Panel: account number login, city search, log out, and toggles for lockdown, auto-connect, LAN sharing, and DNS ad & tracker blocking
 
-Keys inside the panel: `j`/`k` move, Enter selects, `/` search, `t` tunnel, `l` lockdown, Esc closes.
+Keys inside the panel: `j`/`k` move (through the toggles, then the city list), Enter selects, `/` search, `t` tunnel, `l` lockdown, Esc closes.
+
+The ads & trackers switch drives Mullvad's DNS content blocking and re-sends your other block categories (malware, gambling, …) unchanged. If you have a custom DNS server configured, the switch disables itself instead of overwriting it.
+
+## Staying informed
+
+You get a desktop notification when the tunnel drops without you asking it to — critical if your traffic is exposed, quieter if lockdown is already blocking everything — and when the Mullvad daemon stops. Nothing fires when you disconnect on purpose.
+
+When your account is within 7 days of expiring, the panel shows an urgent line with a **Top up** link to mullvad.net/account, the bar icon shows its warning badge, and you get one notification per session. Set `expiryWarnDays` in the widget's bar entry to change the threshold.
 
 ## Account handling
 
